@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/adavarski/kind-monitoring-prometheus-loki-tempo-phlare-victoriametrics-grafana-playground.git
+    repoURL: https://github.com/alanlaird/kind-monitoring-prometheus-loki-tempo-phlare-victoriametrics-grafana-playground.git
     targetRevision: main
     path: manifests/sandbox
   destination:
