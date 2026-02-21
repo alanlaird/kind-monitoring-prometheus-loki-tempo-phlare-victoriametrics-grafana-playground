@@ -65,10 +65,13 @@ load-todo-image: ## Load todo container image to kind
 .PHONY: argocd-password
 argocd-password: ## Show admin password for ArgoCD
 	@kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+	@echo
 
 .PHONY: grafana-password
 grafana-password: ## Show admin password for Grafana
 	@kubectl get secrets -n prometheus prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d
+	@echo
+        
 
 .PHONY: login-argocd
 login-argocd:
