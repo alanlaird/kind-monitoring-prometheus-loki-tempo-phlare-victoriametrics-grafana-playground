@@ -19,6 +19,8 @@ controller:
 
 ## Server
 server:
+  service:
+    type: LoadBalancer
   ## Server metrics service configuration
   metrics:
     # -- Deploy metrics service
