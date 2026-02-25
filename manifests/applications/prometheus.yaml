@@ -25,6 +25,8 @@ spec:
             - --metric-labels-allowlist
             - namespaces=[team]
         grafana:
+          service:
+            type: LoadBalancer
           env:
             GF_FEATURE_TOGGLES_ENABLE: flameGraph
             GF_AUTH_ANONYMOUS_ENABLED: "true"

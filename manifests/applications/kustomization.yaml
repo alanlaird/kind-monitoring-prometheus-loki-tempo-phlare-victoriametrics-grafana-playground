@@ -4,6 +4,8 @@ namespace: argocd
 resources:
   - cert-manager.yaml
   - loki.yaml
+  - metallb.yaml
+  - metallb-config.yaml
   - monitoring.yaml
   - namespaces.yaml
   - phlare.yaml
