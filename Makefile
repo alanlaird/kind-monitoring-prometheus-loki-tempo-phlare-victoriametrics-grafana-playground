@@ -75,8 +75,8 @@ grafana-password: ## Show admin password for Grafana
 
 .PHONY: login-argocd
 login-argocd:
-	kubectl port-forward service/argocd-server -n argocd 8080:443 &          
-	argocd login localhost:8080 -grpc-web --insecure --username admin --password $$(kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+	$(eval ARGOCD_IP := $(shell kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].ip}'))
+	argocd login $(ARGOCD_IP) --insecure --username admin --password $$(kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 
 .PHONY: help
 help: ## Display this help.
