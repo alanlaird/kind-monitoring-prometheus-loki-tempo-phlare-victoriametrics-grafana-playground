@@ -1,4 +1,4 @@
-# KinD: ArgoCD, Grafana, Prometheus, Loki, Tempo, Phlare and VictoriaMetrics.
+# KinD: ArgoCD, Grafana, Prometheus, Loki, Tempo, Phlare, VictoriaMetrics and MetalLB.
 
 - `ArgoCD` is a tool for automating continuous delivery of applications to Kubernetes clusters. It uses GitOps methodology to synchronize the desired state of the application with the actual state in the cluster.
 
@@ -14,6 +14,8 @@
 
 - `Grafana` is a tool for visualizing and analyzing data from various sources, including Prometheus. It provides a flexible and customizable dashboard that allows users to create graphs, charts, and other visualizations to monitor the performance of their systems. Grafana also has a built-in alerting system that can trigger notifications based on specific thresholds.
 
+- `MetalLB` is a load-balancer implementation for bare-metal Kubernetes clusters. It assigns real IP addresses from a configured pool to `LoadBalancer` services, making them reachable from outside the cluster without a cloud provider.
+
 ## Requirements
 
 - Linux OS
@@ -23,25 +25,43 @@
 - [helm](https://helm.sh/docs/intro/install/)
 - [yq](https://github.com/mikefarah/yq)
 - [argocd CLI](https://argo-cd.readthedocs.io/en/stable/cli_installation/)
+- [kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/) (for applying dashboard ConfigMaps)
 
 
 ### Usage:
 ```
 make launch-k8s
 make deploy-argocd
+```
 
+ArgoCD and Grafana are exposed via MetalLB `LoadBalancer` services — no port-forwarding needed after syncing apps.
+
+```
+# Show ArgoCD admin password
+make argocd-password
+
+# Show Grafana admin password
+make grafana-password
+
+# Login argocd CLI (after MetalLB IPs are assigned)
+make login-argocd
+```
+
+Legacy port-forward approach (if MetalLB is not yet configured):
+```
 kubectl port-forward service/argocd-server -n argocd 8080:443 &
 ### Browser (ArgoCD) : https://localhost:8080
 
-kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-argocd login localhost:8080 --grpc-web --insecure --username admin --password $(kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+argocd login localhost:8080 --grpc-web --insecure --username admin \
+  --password $(kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 
-kubectl get secrets -n prometheus prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d
 kubectl port-forward svc/prometheus-grafana 3000:80 -n prometheus
-### Browser (Grafana) : https://localhost:3000
-
+### Browser (Grafana) : http://localhost:3000
 ```
-### Sync apps in below order, based on Argo sync-wave annotation via ArgoCD UI or using `make sync-applications` ! 
+### Sync apps in below order, based on Argo sync-wave annotation via ArgoCD UI or using `make sync-applications` !
+
+> **Note:** The `metallb` and `metallb-config` ArgoCD applications must be on the `main` branch of the repo before syncing. The `metallb-config` app (sync-wave 3) provisions the `IPAddressPool` (`172.18.255.200–250`) and `L2Advertisement` that MetalLB requires to assign external IPs. If these resources are missing, LoadBalancer services will remain `<pending>`.
+
 
 ```
 make sync-applications
@@ -66,6 +86,48 @@ kustomize build ./manifests/applications/ | yq ea [.] -o json | jq -r '. | sort_
 for app in `cat apps-sync.sort`; do argocd app sync $app --retry-limit 3 --timeout 300; done
 
 ```
+## MetalLB
+
+MetalLB is deployed via ArgoCD (sync-wave 2) and configured via a second ArgoCD app `metallb-config` (sync-wave 3). After sync, two `LoadBalancer` services receive external IPs from the `172.18.255.200–250` pool:
+
+| Service | External IP | Port |
+|---|---|---|
+| ArgoCD (`argocd-server`) | `172.18.255.200` | 80, 443 |
+| Grafana (`prometheus-grafana`) | `172.18.255.201` | 80 |
+
+The IP pool is defined in [manifests/metallb/config.yaml](manifests/metallb/config.yaml).
+
+### Accessing services from the LAN — `metallb-dnat.sh`
+
+When running KinD inside a Linux host on a LAN, MetalLB IPs are only reachable on the host itself (they live in the Docker bridge network). `metallb-dnat.sh` automatically discovers all `LoadBalancer` services via `kubectl` and installs iptables DNAT rules so those services are reachable from other machines on the LAN.
+
+```bash
+# Show what would be mapped (no changes made)
+bash metallb-dnat.sh list
+
+# Apply DNAT rules (requires root)
+sudo bash metallb-dnat.sh apply
+
+# Check current rules and discovered services
+sudo bash metallb-dnat.sh status
+
+# Remove all managed rules
+sudo bash metallb-dnat.sh remove
+
+# Watch mode — re-syncs every 30s, picks up new services automatically
+sudo bash metallb-dnat.sh watch
+
+# Install as a systemd service (survives reboots)
+sudo bash metallb-dnat.sh install
+```
+
+After `apply`, services are reachable at the host's LAN IP. Port collisions between services are resolved automatically by incrementing the host port (e.g. if two services both expose port 80, the second gets host port 81).
+
+| Service | LAN URL (example) |
+|---|---|
+| ArgoCD | `http://<host-lan-ip>:80` / `https://<host-lan-ip>:443` |
+| Grafana | `http://<host-lan-ip>:81` |
+
 ### Check apps
 ```
 $ kubectl get po --all-namespaces
@@ -164,13 +226,49 @@ victoriametrics      vmsingle-database                                    Cluste
 
 
 ```
+## Grafana Dashboards
+
+Dashboards are provisioned automatically via a `ConfigMap` (label `grafana_dashboard: "1"`) watched by the Grafana sidecar. JSON files live in [manifests/monitoring/prometheus/dashboards/](manifests/monitoring/prometheus/dashboards/) and are bundled by [manifests/monitoring/prometheus/kustomization.yaml](manifests/monitoring/prometheus/kustomization.yaml).
+
+To apply changes locally:
+```bash
+kustomize build manifests/monitoring/prometheus | kubectl apply -f -
+```
+
+### Available Dashboards
+
+#### Pre-provisioned (kube-prometheus-stack)
+| Dashboard | Description |
+|---|---|
+| Kubernetes / Compute Resources / Cluster | Cluster-wide CPU & memory requests vs allocatable |
+| Kubernetes / Compute Resources / Node (Pods) | Per-node pod scheduling breakdown |
+| Node Exporter / Nodes | Per-node disk, CPU, memory, network |
+| Node Exporter / USE Method / Cluster | Utilisation, Saturation, Errors — cluster view |
+| Alertmanager / Overview | Alertmanager firing alerts and routing |
+| Prometheus / Overview | Prometheus engine health |
+| etcd | etcd cluster health and latency |
+| CoreDNS | DNS query rates and latency |
+
+#### Custom (this repo)
+| Dashboard | Datasource | Description |
+|---|---|---|
+| [ArgoCD / App Health & Sync](manifests/monitoring/prometheus/dashboards/argocd-app-health.json) | Prometheus | Per-app health/sync status table, sync success/failure rate, reconcile latency |
+| [ArgoCD Performance](manifests/monitoring/prometheus/dashboards/argocd-performance.json) | Prometheus + Loki + Tempo + Phlare | ArgoCD server CPU/memory, sync duration, flame graph |
+| [Cluster Capacity](manifests/monitoring/prometheus/dashboards/cluster-capacity.json) | Prometheus | Allocatable vs requested vs actual CPU/memory per node, pod headroom, disk, namespace breakdown |
+| [Cert-Manager / Certificate Health](manifests/monitoring/prometheus/dashboards/cert-manager.json) | Prometheus | Pod readiness, cert read rate/errors, API server certificate TTL |
+| [Loki / Log Volume & Errors](manifests/monitoring/prometheus/dashboards/loki-logs.json) | Loki | Log ingestion rate by namespace, error/warn rate, top emitting pods, live log stream |
+| [MetalLB / LoadBalancer Services](manifests/monitoring/prometheus/dashboards/metallb-services.json) | Prometheus | LoadBalancer service inventory, speaker/controller readiness, pod resource usage |
+| [Phlare / Continuous Profiling](manifests/monitoring/prometheus/dashboards/phlare-profiling.json) | Phlare | CPU & memory allocation flamegraphs per service |
+| [Tempo / Distributed Tracing](manifests/monitoring/prometheus/dashboards/tempo-tracing.json) | Tempo | Trace count, error traces, p95 duration, recent trace table with links |
+| [VictoriaMetrics / Health](manifests/monitoring/prometheus/dashboards/victoriametrics-health.json) | Prometheus | VM pod readiness, CPU/memory usage, ingestion rate, network I/O |
+
 ### Screenshots:
 
 ### Browser (ArgoCD) : https://localhost:8080
 
 <img src="pictures/ArgoCD-applications.png?raw=true" width="1000">
 
-### Browser (Grafana): http://localhost:3000 
+### Browser (Grafana): http://\<metallb-ip\>:80 (or http://\<host-lan-ip\>:81 via DNAT)
 
 <img src="pictures/Grafana-DataSources.png?raw=true" width="1000">
 
