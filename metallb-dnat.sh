@@ -61,7 +61,7 @@ resolve_kubectl() {
     KUBECTL=$(command -v kubectl 2>/dev/null || true)
     [[ -n "$KUBECTL" ]] || { error "kubectl not found. Install it or set KUBECTL in CONFIG."; exit 1; }
   fi
-  [[ -n "$KUBECONFIG_PATH" ]] && export KUBECONFIG="$KUBECONFIG_PATH"
+  if [[ -n "$KUBECONFIG_PATH" ]]; then export KUBECONFIG="$KUBECONFIG_PATH"; fi
 }
 
 detect_iface() {
@@ -105,6 +105,9 @@ discover_services() {
       2>/dev/null || true)
   fi
 
+  # Track host ports already claimed across all services to avoid DNAT conflicts.
+  declare -A used_host_ports
+
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
 
@@ -118,13 +121,19 @@ discover_services() {
       [[ "$extip" == ${METALLB_IP_PREFIX}* ]] || continue
     fi
 
-    # Build comma-separated port pairs
+    # Build comma-separated port pairs, resolving host-port collisions by
+    # incrementing the host port until a free slot is found.
     local port_pairs=""
     IFS=',' read -r -a port_arr <<< "$ports_raw"
     for p in "${port_arr[@]}"; do
       p="${p// /}"
       [[ -z "$p" || "$p" == "<none>" ]] && continue
-      port_pairs+="${p}:${p},"
+      local host_port="$p"
+      while [[ -n "${used_host_ports[$host_port]+_}" ]]; do
+        host_port=$((host_port + 1))
+      done
+      used_host_ports[$host_port]=1
+      port_pairs+="${host_port}:${p},"
     done
     port_pairs="${port_pairs%,}"
 
