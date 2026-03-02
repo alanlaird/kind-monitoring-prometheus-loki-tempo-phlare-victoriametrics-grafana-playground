@@ -1,0 +1,116 @@
+{
+  "title": "Loki / Log Volume & Errors",
+  "uid": "loki-logs-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["loki", "logs"],
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+        "query": "label_values(namespace)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Log Volume by Namespace",
+      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (namespace) (rate({namespace=~\"$namespace\"} [5m]))",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "unit": "logs/s" }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error & Warn Log Rate",
+      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (namespace) (rate({namespace=~\"$namespace\"} |~ \"(?i)(error|exception|fatal)\" [5m]))",
+          "legendFormat": "error · {{namespace}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (namespace) (rate({namespace=~\"$namespace\"} |~ \"(?i)warn\" [5m]))",
+          "legendFormat": "warn · {{namespace}}",
+          "refId": "B"
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": {
+        "defaults": { "unit": "logs/s" },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "^error" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byRegexp", "options": "^warn" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Top Log-Emitting Pods (last 15m)",
+      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "topk(15, sum by (pod, namespace) (rate({namespace=~\"$namespace\", pod=~\".+\"} [15m])))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": { "sortBy": [{ "displayName": "Value", "desc": true }] },
+      "fieldConfig": {
+        "defaults": { "unit": "logs/s" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "namespace" }, "properties": [{ "id": "custom.width", "value": 130 }] },
+          { "matcher": { "id": "byName", "options": "pod" },       "properties": [{ "id": "custom.width", "value": 260 }] }
+        ]
+      },
+      "transformations": [{ "id": "labelsToFields", "options": { "valueLabel": "pod" } }]
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Live Log Stream",
+      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "gridPos": { "h": 14, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "{namespace=~\"$namespace\"}",
+          "refId": "A",
+          "maxLines": 500
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      }
+    }
+  ]
+}

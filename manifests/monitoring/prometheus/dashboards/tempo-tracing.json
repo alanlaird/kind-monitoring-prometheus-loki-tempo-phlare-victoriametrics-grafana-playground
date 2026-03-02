@@ -1,0 +1,123 @@
+{
+  "title": "Tempo / Distributed Tracing",
+  "uid": "tempo-tracing-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["tempo", "tracing"],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": { "type": "tempo", "uid": "P214B5B846CF3925F" },
+        "query": { "query": "label_values(service.name)", "queryType": "nativeSearch" },
+        "refresh": 2,
+        "multi": false,
+        "includeAll": true,
+        "allValue": "",
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Traces (last 1h)",
+      "datasource": { "type": "tempo", "uid": "P214B5B846CF3925F" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{}",
+          "refId": "A",
+          "tableType": "traces",
+          "limit": 2000
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["count"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }] } }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Traces with Errors (last 1h)",
+      "datasource": { "type": "tempo", "uid": "P214B5B846CF3925F" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{ status = error }",
+          "refId": "A",
+          "tableType": "traces",
+          "limit": 2000
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["count"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "P95 Span Duration (last 1h)",
+      "datasource": { "type": "tempo", "uid": "P214B5B846CF3925F" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{ } | quantile_over_time(duration, 0.95)",
+          "refId": "A",
+          "tableType": "traces"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "value" },
+      "fieldConfig": { "defaults": { "unit": "ns" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Services Traced",
+      "datasource": { "type": "tempo", "uid": "P214B5B846CF3925F" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "queryType": "nativeSearch",
+          "query": "",
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["count"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Recent Traces",
+      "datasource": { "type": "tempo", "uid": "P214B5B846CF3925F" },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{}",
+          "refId": "A",
+          "tableType": "traces",
+          "limit": 100
+        }
+      ],
+      "options": { "sortBy": [{ "displayName": "Start time", "desc": true }] },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "traceID" }, "properties": [{ "id": "links", "value": [{ "title": "Open trace", "url": "/explore?left={\"datasource\":\"P214B5B846CF3925F\",\"queries\":[{\"query\":\"${__value.raw}\",\"queryType\":\"traceId\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}" }] }] }
+        ]
+      }
+    }
+  ]
+}

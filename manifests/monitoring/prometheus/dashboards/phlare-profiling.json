@@ -1,0 +1,88 @@
+{
+  "title": "Phlare / Continuous Profiling",
+  "uid": "phlare-profiling-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["phlare", "profiling"],
+  "templating": {
+    "list": [
+      {
+        "name": "service_name",
+        "label": "Service",
+        "type": "query",
+        "datasource": { "type": "phlare", "uid": "PD3452FC02DB93657" },
+        "query": { "label": "service_name", "queryType": "label_values" },
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "current": {}
+      },
+      {
+        "name": "profile_type",
+        "label": "Profile Type",
+        "type": "query",
+        "datasource": { "type": "phlare", "uid": "PD3452FC02DB93657" },
+        "query": { "queryType": "profile_types" },
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "flamegraph",
+      "title": "CPU Flamegraph — $service_name",
+      "datasource": { "type": "phlare", "uid": "PD3452FC02DB93657" },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "queryType": "metrics",
+          "labelSelector": "{service_name=\"$service_name\"}",
+          "profileTypeId": "process_cpu:cpu:nanoseconds:cpu:nanoseconds",
+          "refId": "A"
+        }
+      ],
+      "options": {}
+    },
+    {
+      "id": 2,
+      "type": "flamegraph",
+      "title": "Memory Allocations — $service_name",
+      "datasource": { "type": "phlare", "uid": "PD3452FC02DB93657" },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "queryType": "metrics",
+          "labelSelector": "{service_name=\"$service_name\"}",
+          "profileTypeId": "memory:alloc_objects:count:space:bytes",
+          "refId": "A"
+        }
+      ],
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "CPU Profile Rate — all services",
+      "datasource": { "type": "phlare", "uid": "PD3452FC02DB93657" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 40 },
+      "targets": [
+        {
+          "queryType": "metrics",
+          "labelSelector": "{}",
+          "profileTypeId": "process_cpu:cpu:nanoseconds:cpu:nanoseconds",
+          "refId": "A",
+          "groupBy": ["service_name"]
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "unit": "ns" }, "overrides": [] }
+    }
+  ]
+}

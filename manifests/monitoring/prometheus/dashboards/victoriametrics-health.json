@@ -1,0 +1,129 @@
+{
+  "title": "VictoriaMetrics / Health",
+  "uid": "victoriametrics-health",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["victoriametrics"],
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "VM Pod Status",
+      "datasource": { "type": "prometheus", "uid": "P4169E866C3094E38" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "kube_pod_container_status_ready{namespace=\"victoriametrics\"}",
+          "legendFormat": "{{pod}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "textMode": "auto", "orientation": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "type": "value", "options": { "0": { "text": "Not Ready", "color": "red" }, "1": { "text": "Ready", "color": "green" } } }],
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "VM Pod Restarts",
+      "datasource": { "type": "prometheus", "uid": "P4169E866C3094E38" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"victoriametrics\"})",
+          "legendFormat": "restarts",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "textMode": "auto", "orientation": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "CPU Usage — victoriametrics pods",
+      "datasource": { "type": "prometheus", "uid": "P4169E866C3094E38" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"victoriametrics\", container!=\"\"}[5m]))",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Memory Usage — victoriametrics pods",
+      "datasource": { "type": "prometheus", "uid": "P4169E866C3094E38" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"victoriametrics\", container!=\"\"})",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Ingestion Rate (samples/s) via VictoriaMetrics datasource",
+      "datasource": { "type": "prometheus", "uid": "P4169E866C3094E38" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum(rate(prometheus_tsdb_head_samples_appended_total[5m]))",
+          "legendFormat": "samples/s (Prometheus → VM)",
+          "refId": "A"
+        }
+      ],
+      "options": { "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "vmagent Network I/O",
+      "datasource": { "type": "prometheus", "uid": "P4169E866C3094E38" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum by (pod) (rate(container_network_receive_bytes_total{namespace=\"victoriametrics\"}[5m]))",
+          "legendFormat": "rx · {{pod}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (pod) (rate(container_network_transmit_bytes_total{namespace=\"victoriametrics\"}[5m]))",
+          "legendFormat": "tx · {{pod}}",
+          "refId": "B"
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+    }
+  ]
+}

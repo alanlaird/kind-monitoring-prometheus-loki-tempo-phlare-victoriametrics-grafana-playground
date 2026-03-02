@@ -11,3 +11,10 @@ configMapGenerator:
   - name: grafana-dashboards
     files:
       - ./dashboards/argocd-performance.json
+      - ./dashboards/argocd-app-health.json
+      - ./dashboards/loki-logs.json
+      - ./dashboards/tempo-tracing.json
+      - ./dashboards/phlare-profiling.json
+      - ./dashboards/victoriametrics-health.json
+      - ./dashboards/metallb-services.json
+      - ./dashboards/cert-manager.json
