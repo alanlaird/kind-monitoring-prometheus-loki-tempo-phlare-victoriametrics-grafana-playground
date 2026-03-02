@@ -18,3 +18,4 @@ configMapGenerator:
       - ./dashboards/victoriametrics-health.json
       - ./dashboards/metallb-services.json
       - ./dashboards/cert-manager.json
+      - ./dashboards/cluster-capacity.json
