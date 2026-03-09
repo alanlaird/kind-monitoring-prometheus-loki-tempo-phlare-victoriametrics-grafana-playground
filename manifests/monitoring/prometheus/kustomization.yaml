@@ -19,3 +19,4 @@ configMapGenerator:
       - ./dashboards/metallb-services.json
       - ./dashboards/cert-manager.json
       - ./dashboards/cluster-capacity.json
+      - ./dashboards/node-exporter-full.json
