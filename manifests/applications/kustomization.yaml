@@ -3,7 +3,10 @@ kind: Kustomization
 namespace: argocd
 resources:
   - cert-manager.yaml
+  - csi-driver-nfs.yaml
+  - ingress-nginx.yaml
   - loki.yaml
+  - media.yaml
   - metallb.yaml
   - metallb-config.yaml
   - monitoring.yaml

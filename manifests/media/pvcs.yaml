@@ -1,0 +1,268 @@
+---
+# NFS PersistentVolumes — static provisioning via csi-driver-nfs
+# Config dirs live at ophir:/media/k8s/<service>
+# Media libraries at ophir:/media/movies-fir, ophir:/media/tv-fir, ophir:/media
+# Downloads at ophir:/media/downloads (shared scratch space)
+
+# ── sabnzbd config ──────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sabnzbd-config
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/k8s/sabnzbd
+    volumeAttributes:
+      server: ophir
+      share: /media/k8s/sabnzbd
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sabnzbd-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  volumeName: sabnzbd-config
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# ── radarr config ────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: radarr-config
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/k8s/radarr
+    volumeAttributes:
+      server: ophir
+      share: /media/k8s/radarr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: radarr-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  volumeName: radarr-config
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# ── sonarr config ────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sonarr-config
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/k8s/sonarr
+    volumeAttributes:
+      server: ophir
+      share: /media/k8s/sonarr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarr-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  volumeName: sonarr-config
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# ── seerr config ─────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: seerr-config
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/k8s/seerr
+    volumeAttributes:
+      server: ophir
+      share: /media/k8s/seerr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seerr-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  volumeName: seerr-config
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# ── plex config ──────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: plex-config
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/k8s/plex
+    volumeAttributes:
+      server: ophir
+      share: /media/k8s/plex
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: plex-config
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  volumeName: plex-config
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# ── shared: downloads (read-write) ───────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-downloads
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/downloads
+    volumeAttributes:
+      server: ophir
+      share: /media/downloads
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-downloads
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: media-downloads
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# ── shared: movies library (read-write so *arr can rename) ───────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-movies
+spec:
+  capacity:
+    storage: 20Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/movies-fir
+    volumeAttributes:
+      server: ophir
+      share: /media/movies-fir
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-movies
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: media-movies
+  resources:
+    requests:
+      storage: 20Ti
+
+---
+# ── shared: TV library ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-tv
+spec:
+  capacity:
+    storage: 20Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ophir/media/tv-fir
+    volumeAttributes:
+      server: ophir
+      share: /media/tv-fir
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-tv
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: media-tv
+  resources:
+    requests:
+      storage: 20Ti
