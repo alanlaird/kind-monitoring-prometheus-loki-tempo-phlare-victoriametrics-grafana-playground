@@ -1,8 +1,48 @@
 KUBERNETES_VERSION := 1.35.1
 
 KIND_CLUSTER_NAME=hands-on
+SILETZ_HOST=siletz
+ANSIBLE_REPO=$(HOME)/work/ansible-homelab
 
 all: help
+
+.PHONY: status
+status: ## Show cluster health, ArgoCD app status, and git repo state
+	@echo ""
+	@echo "\033[1;34m── Git ──────────────────────────────────────────────────────────\033[0m"
+	@echo "\033[1mkind-o11y\033[0m"
+	@git -C $(CURDIR) status --short 2>/dev/null | grep . && echo "  (uncommitted changes)" || echo "  working tree clean"
+	@AHEAD=$$(git -C $(CURDIR) rev-list --count @{u}..HEAD 2>/dev/null); \
+	  [ "$$AHEAD" -gt 0 ] 2>/dev/null && echo "  ⚠  $$AHEAD commit(s) not pushed" || echo "  up to date with remote"
+	@echo "\033[1mansible-homelab\033[0m"
+	@git -C $(ANSIBLE_REPO) status --short 2>/dev/null | grep . && echo "  (uncommitted changes)" || echo "  working tree clean"
+	@AHEAD=$$(git -C $(ANSIBLE_REPO) rev-list --count @{u}..HEAD 2>/dev/null); \
+	  [ "$$AHEAD" -gt 0 ] 2>/dev/null && echo "  ⚠  $$AHEAD commit(s) not pushed" || echo "  up to date with remote"
+	@echo ""
+	@echo "\033[1;34m── Nodes ────────────────────────────────────────────────────────\033[0m"
+	@ssh $(SILETZ_HOST) 'kind get kubeconfig --name kind > /tmp/kc.yaml 2>/dev/null; \
+	  KUBECONFIG=/tmp/kc.yaml kubectl get nodes -o wide 2>/dev/null'
+	@echo ""
+	@echo "\033[1;34m── ArgoCD Apps ──────────────────────────────────────────────────\033[0m"
+	@ssh $(SILETZ_HOST) 'kind get kubeconfig --name kind > /tmp/kc.yaml 2>/dev/null; \
+	  KUBECONFIG=/tmp/kc.yaml kubectl -n argocd get applications \
+	    -o custom-columns="APP:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,WAVE:.metadata.annotations.argocd\.argoproj\.io/sync-wave" \
+	    --sort-by=".metadata.annotations.argocd\.argoproj\.io/sync-wave" 2>/dev/null'
+	@echo ""
+	@echo "\033[1;34m── Unhealthy Pods ───────────────────────────────────────────────\033[0m"
+	@ssh $(SILETZ_HOST) 'kind get kubeconfig --name kind > /tmp/kc.yaml 2>/dev/null; \
+	  RESULT=$$(KUBECONFIG=/tmp/kc.yaml kubectl get pods -A \
+	    --field-selector="status.phase!=Running,status.phase!=Succeeded" \
+	    --no-headers 2>/dev/null | grep -v "^$$"); \
+	  [ -z "$$RESULT" ] && echo "  all pods healthy" || echo "$$RESULT"'
+	@echo ""
+	@echo "\033[1;34m── External IPs (MetalLB) ───────────────────────────────────────\033[0m"
+	@ssh $(SILETZ_HOST) 'kind get kubeconfig --name kind > /tmp/kc.yaml 2>/dev/null; \
+	  KUBECONFIG=/tmp/kc.yaml kubectl get svc -A \
+	    --field-selector="spec.type=LoadBalancer" \
+	    -o custom-columns="NAMESPACE:.metadata.namespace,NAME:.metadata.name,EXTERNAL-IP:.status.loadBalancer.ingress[0].ip,PORT:.spec.ports[0].port" \
+	    2>/dev/null'
+	@echo ""
 
 .PHONY: launch-k8s
 launch-k8s: ## Launch Kubernetes cluster with kind
