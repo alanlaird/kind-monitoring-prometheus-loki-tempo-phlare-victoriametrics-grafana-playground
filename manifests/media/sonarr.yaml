@@ -66,13 +66,13 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: sonarr-config
+            claimName: sonarr
         - name: tv
           persistentVolumeClaim:
-            claimName: media-tv
+            claimName: tv
         - name: downloads
           persistentVolumeClaim:
-            claimName: media-downloads
+            claimName: downloads
 ---
 apiVersion: v1
 kind: Service

@@ -66,13 +66,13 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: radarr-config
+            claimName: radarr
         - name: movies
           persistentVolumeClaim:
-            claimName: media-movies
+            claimName: movies
         - name: downloads
           persistentVolumeClaim:
-            claimName: media-downloads
+            claimName: downloads
 ---
 apiVersion: v1
 kind: Service

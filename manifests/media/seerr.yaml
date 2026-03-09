@@ -58,7 +58,7 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: seerr-config
+            claimName: seerr
 ---
 apiVersion: v1
 kind: Service

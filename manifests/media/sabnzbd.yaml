@@ -62,10 +62,10 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: sabnzbd-config
+            claimName: sabnzbd
         - name: downloads
           persistentVolumeClaim:
-            claimName: media-downloads
+            claimName: downloads
 ---
 apiVersion: v1
 kind: Service
