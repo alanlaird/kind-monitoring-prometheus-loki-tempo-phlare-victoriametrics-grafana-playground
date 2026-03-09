@@ -123,20 +123,6 @@ spec:
     requests:
       storage: 2Gi
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: plex
-  namespace: media
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: nfs-ophir-config
-  resources:
-    requests:
-      storage: 20Gi
-
----
 # ── shared media PVCs ─────────────────────────────────────────────────────────
 
 apiVersion: v1
