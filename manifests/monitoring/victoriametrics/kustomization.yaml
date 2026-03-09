@@ -4,3 +4,4 @@ namespace: victoriametrics
 resources:
   - vmagent.yaml
   - vmsingle.yaml
+  - vmsingle-lb.yaml
