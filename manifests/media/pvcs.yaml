@@ -13,7 +13,7 @@ metadata:
   name: nfs-ophir-config
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: ophir
+  server: 172.16.11.51
   share: /media/k8s
   subDir: ${pvc.metadata.name}
 mountOptions:
@@ -29,7 +29,7 @@ metadata:
   name: nfs-ophir-movies
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: ophir
+  server: 172.16.11.51
   share: /media/movies-fir
 mountOptions:
   - nfsvers=3
@@ -44,7 +44,7 @@ metadata:
   name: nfs-ophir-tv
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: ophir
+  server: 172.16.11.51
   share: /media/tv-fir
 mountOptions:
   - nfsvers=3
@@ -59,7 +59,7 @@ metadata:
   name: nfs-ophir-downloads
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: ophir
+  server: 172.16.11.51
   share: /media/downloads
 mountOptions:
   - nfsvers=3
