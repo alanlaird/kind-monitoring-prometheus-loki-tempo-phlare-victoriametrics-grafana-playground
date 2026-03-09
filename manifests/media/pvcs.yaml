@@ -16,7 +16,6 @@ parameters:
   server: ophir
   share: /media/k8s
   subDir: ${pvc.metadata.name}
-  onDeletePolicy: retain
 mountOptions:
   - nfsvers=3
   - nolock
@@ -32,7 +31,6 @@ provisioner: nfs.csi.k8s.io
 parameters:
   server: ophir
   share: /media/movies-fir
-  onDeletePolicy: retain
 mountOptions:
   - nfsvers=3
   - nolock
@@ -48,7 +46,6 @@ provisioner: nfs.csi.k8s.io
 parameters:
   server: ophir
   share: /media/tv-fir
-  onDeletePolicy: retain
 mountOptions:
   - nfsvers=3
   - nolock
@@ -64,7 +61,6 @@ provisioner: nfs.csi.k8s.io
 parameters:
   server: ophir
   share: /media/downloads
-  onDeletePolicy: retain
 mountOptions:
   - nfsvers=3
   - nolock
