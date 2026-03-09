@@ -69,15 +69,17 @@ deploy-argocd: ## Deploy Argo CD on Kubernetes cluster
 	kubectl -n argocd wait --for=condition=available --timeout=300s --all deployments
 
 .PHONY: sync-applications
-sync-applications: ## Sync Applications
-	# sort applications by sync-wave annotation
-	$(eval APPS := $(shell kustomize build ./manifests/applications/ | yq ea [.] -o json | jq -r '. | sort_by(.metadata.annotations."argocd.argoproj.io/sync-wave" // "0" | tonumber) | .[] | .metadata.name'))
-	for app in $(APPS); do \
-		argocd app sync $$app --retry-limit 3 --timeout 300; \
-		argocd app wait $$app --timeout 300; \
-	done
-	# enable Argo CD metrics Service and ServiceMonitor
-	helm upgrade -f ./manifests/argocd/values.yaml --namespace argocd argocd argo/argo-cd
+sync-applications: ## Force ArgoCD to sync all OutOfSync apps on siletz (sorted by sync-wave)
+	@echo "Triggering sync for all OutOfSync apps..."
+	@ssh $(SILETZ_HOST) 'kind get kubeconfig --name kind > /tmp/kc.yaml 2>/dev/null; \
+	  KUBECONFIG=/tmp/kc.yaml kubectl -n argocd get app \
+	    -o jsonpath="{range .items[?(@.status.sync.status==\"OutOfSync\")]}{.metadata.name}{\"\n\"}{end}" \
+	  | while read app; do \
+	    echo "  syncing $$app"; \
+	    KUBECONFIG=/tmp/kc.yaml kubectl -n argocd patch app "$$app" \
+	      --type merge -p '"'"'{"operation":{"sync":{"revision":"HEAD"}}}'"'"'; \
+	  done'
+	@echo "Done — run 'make status' to check results"
 
 .PHONY: local-sync-applications
 local-sync-applications: ## Sync Applications with local manifests
